@@ -1,6 +1,6 @@
 // ── Config ──────────────────────────────────────────────────────────────────
-const CLOUDINARY_CLOUD  = "YOUR_CLOUD_NAME";
-const CLOUDINARY_PRESET = "YOUR_UPLOAD_PRESET";
+const CLOUDINARY_CLOUD  = "dglx8phdf";
+const CLOUDINARY_PRESET = "claude_mergelskaul_verkauf";
 
 // ── State ────────────────────────────────────────────────────────────────────
 let allItems     = [];
