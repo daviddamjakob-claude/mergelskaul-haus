@@ -46,6 +46,7 @@ html, body {
   inset: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--bg);
   transform: translateX(100%);
   transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
