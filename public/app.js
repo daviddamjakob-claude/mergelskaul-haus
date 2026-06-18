@@ -154,7 +154,7 @@ function addThumb(url, index) {
 
   const img = document.createElement("img");
   img.src = url;
-  img.addEventListener("click", () => openLightbox(url));
+  img.addEventListener("click", () => openLightbox(pendingImages.map(i => i.url), parseInt(wrap.dataset.index, 10)));
 
   const rm = document.createElement("button");
   rm.className = "thumb-remove";
@@ -327,7 +327,7 @@ function buildCard(item, images) {
     const img = document.createElement("img");
     img.src = images[0];
     img.alt = item.item;
-    img.addEventListener("click", () => openLightbox(images[0]));
+    img.addEventListener("click", () => openLightbox(images, 0));
     thumb.appendChild(img);
     if (images.length > 1) {
       const cnt = document.createElement("span");
@@ -404,13 +404,42 @@ function buildCard(item, images) {
 }
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
-function openLightbox(url) {
-  lightboxImg.src = url;
+let lbImages = [];
+let lbIndex  = 0;
+let lbTouchStartX = 0;
+
+const lbPrev    = document.getElementById("lightboxPrev");
+const lbNext    = document.getElementById("lightboxNext");
+const lbCounter = document.getElementById("lightboxCounter");
+
+lbPrev.addEventListener("click", () => showLightboxImage(lbIndex - 1));
+lbNext.addEventListener("click", () => showLightboxImage(lbIndex + 1));
+
+lightboxImg.addEventListener("touchstart", e => { lbTouchStartX = e.touches[0].clientX; }, { passive: true });
+lightboxImg.addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - lbTouchStartX;
+  if (Math.abs(dx) > 50) showLightboxImage(lbIndex + (dx < 0 ? 1 : -1));
+}, { passive: true });
+
+function openLightbox(images, index) {
+  lbImages = Array.isArray(images) ? images : [images];
+  showLightboxImage(index ?? 0);
   lightbox.classList.remove("hidden");
 }
+
+function showLightboxImage(index) {
+  lbIndex = Math.max(0, Math.min(index, lbImages.length - 1));
+  lightboxImg.src = lbImages[lbIndex];
+  const multi = lbImages.length > 1;
+  lbPrev.classList.toggle("hidden", !multi || lbIndex === 0);
+  lbNext.classList.toggle("hidden", !multi || lbIndex === lbImages.length - 1);
+  lbCounter.textContent = multi ? `${lbIndex + 1} / ${lbImages.length}` : "";
+}
+
 function closeLightbox() {
   lightbox.classList.add("hidden");
   lightboxImg.src = "";
+  lbImages = [];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
