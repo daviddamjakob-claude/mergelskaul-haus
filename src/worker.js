@@ -1,34 +1,40 @@
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    const path = url.pathname;
+    const url    = new URL(request.url);
+    const path   = url.pathname;
+    const method = request.method;
 
-    // API routes
-    if (path === "/api/items" && request.method === "GET") {
-      return getItems(env);
-    }
-    if (path === "/api/items" && request.method === "POST") {
-      return createItem(request, env);
-    }
+    // ── Items ──────────────────────────────────────────────
+    if (path === "/api/items" && method === "GET")  return getItems(env);
+    if (path === "/api/items" && method === "POST") return createItem(request, env);
 
     const itemMatch = path.match(/^\/api\/items\/(\d+)$/);
     if (itemMatch) {
       const id = itemMatch[1];
-      if (request.method === "GET")    return getItem(id, env);
-      if (request.method === "PUT")    return updateItem(id, request, env);
-      if (request.method === "DELETE") return deleteItem(id, env);
+      if (method === "GET")    return getItem(id, env);
+      if (method === "PUT")    return updateItem(id, request, env);
+      if (method === "DELETE") return deleteItem(id, env);
     }
 
-    // Static assets are served automatically via the assets binding
+    // ── Reactions ───────────────────────────────────────────
+    if (path === "/api/reactions" && method === "POST")   return upsertReaction(request, env);
+    if (path === "/api/reactions" && method === "DELETE") return removeReaction(request, env);
+
     return new Response("Not found", { status: 404 });
   },
 };
 
+// ── Items ────────────────────────────────────────────────────────────────────
 async function getItems(env) {
   try {
-    const { results } = await env.DB.prepare(
-      "SELECT * FROM items ORDER BY created_at DESC"
-    ).all();
+    const { results } = await env.DB.prepare(`
+      SELECT i.*,
+        COALESCE((
+          SELECT json_group_array(json_object('account', account, 'reaction', reaction))
+          FROM reactions r WHERE r.item_id = i.id
+        ), '[]') AS reactions
+      FROM items i ORDER BY i.created_at DESC
+    `).all();
     return json(results);
   } catch (e) {
     return json({ error: e.message }, 500);
@@ -44,8 +50,9 @@ async function createItem(request, env) {
       "INSERT INTO items (item, raum, notes, entscheidung, images) VALUES (?, ?, ?, ?, ?)"
     ).bind(item, raum, notes ?? "", entscheidung ?? "Noch unklar", JSON.stringify(images ?? [])).run();
 
-    const created = await env.DB.prepare("SELECT * FROM items WHERE id = ?")
-      .bind(meta.last_row_id).first();
+    const created = await env.DB.prepare(`
+      SELECT i.*, '[]' AS reactions FROM items i WHERE i.id = ?
+    `).bind(meta.last_row_id).first();
     return json(created, 201);
   } catch (e) {
     return json({ error: e.message }, 500);
@@ -54,7 +61,14 @@ async function createItem(request, env) {
 
 async function getItem(id, env) {
   try {
-    const row = await env.DB.prepare("SELECT * FROM items WHERE id = ?").bind(id).first();
+    const row = await env.DB.prepare(`
+      SELECT i.*,
+        COALESCE((
+          SELECT json_group_array(json_object('account', account, 'reaction', reaction))
+          FROM reactions r WHERE r.item_id = i.id
+        ), '[]') AS reactions
+      FROM items i WHERE i.id = ?
+    `).bind(id).first();
     if (!row) return json({ error: "Nicht gefunden" }, 404);
     return json(row);
   } catch (e) {
@@ -69,8 +83,8 @@ async function updateItem(id, request, env) {
       "UPDATE items SET item=?, raum=?, notes=?, entscheidung=?, images=?, updated_at=CURRENT_TIMESTAMP WHERE id=?"
     ).bind(item, raum, notes ?? "", entscheidung ?? "Noch unklar", JSON.stringify(images ?? []), id).run();
 
-    const updated = await env.DB.prepare("SELECT * FROM items WHERE id = ?").bind(id).first();
-    return json(updated);
+    const updated = await getItem(id, env);
+    return updated;
   } catch (e) {
     return json({ error: e.message }, 500);
   }
@@ -78,7 +92,34 @@ async function updateItem(id, request, env) {
 
 async function deleteItem(id, env) {
   try {
+    await env.DB.prepare("DELETE FROM reactions WHERE item_id = ?").bind(id).run();
     await env.DB.prepare("DELETE FROM items WHERE id = ?").bind(id).run();
+    return json({ ok: true });
+  } catch (e) {
+    return json({ error: e.message }, 500);
+  }
+}
+
+// ── Reactions ────────────────────────────────────────────────────────────────
+async function upsertReaction(request, env) {
+  try {
+    const { item_id, account, reaction } = await request.json();
+    if (!item_id || !account || !reaction) return json({ error: "item_id, account und reaction sind Pflichtfelder" }, 400);
+
+    await env.DB.prepare(
+      "INSERT INTO reactions (item_id, account, reaction) VALUES (?, ?, ?) ON CONFLICT(item_id, account) DO UPDATE SET reaction=excluded.reaction, created_at=CURRENT_TIMESTAMP"
+    ).bind(item_id, account, reaction).run();
+
+    return json({ ok: true });
+  } catch (e) {
+    return json({ error: e.message }, 500);
+  }
+}
+
+async function removeReaction(request, env) {
+  try {
+    const { item_id, account } = await request.json();
+    await env.DB.prepare("DELETE FROM reactions WHERE item_id = ? AND account = ?").bind(item_id, account).run();
     return json({ ok: true });
   } catch (e) {
     return json({ error: e.message }, 500);

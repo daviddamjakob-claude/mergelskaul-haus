@@ -11,12 +11,60 @@
 </head>
 <body>
 
+  <!-- ── Page: Login ────────────────────────────────────── -->
+  <div id="pageLogin" class="page active">
+    <div class="login-bg">
+      <div class="login-header">
+        <div class="login-logo">🏠</div>
+        <h1 class="login-title">Mergelskaulhaus</h1>
+        <p class="login-sub">Was bleibt, was geht?</p>
+      </div>
+      <div class="login-card">
+        <p class="login-prompt">Wer bist du?</p>
+        <div class="account-grid">
+          <button class="account-btn" data-account="Admin">
+            <span class="account-avatar" style="background:#1c3d3b">AD</span>
+            <span class="account-name">Admin</span>
+          </button>
+          <button class="account-btn" data-account="C&amp;C">
+            <span class="account-avatar" style="background:#7c3aed">CC</span>
+            <span class="account-name">C&amp;C</span>
+          </button>
+          <button class="account-btn" data-account="David">
+            <span class="account-avatar" style="background:#1e40af">DA</span>
+            <span class="account-name">David</span>
+          </button>
+          <button class="account-btn" data-account="Nicki">
+            <span class="account-avatar" style="background:#b45309">NI</span>
+            <span class="account-name">Nicki</span>
+          </button>
+          <button class="account-btn" data-account="Tizi">
+            <span class="account-avatar" style="background:#166534">TI</span>
+            <span class="account-name">Tizi</span>
+          </button>
+          <button class="account-btn" data-account="Tara">
+            <span class="account-avatar" style="background:#991b1b">TA</span>
+            <span class="account-name">Tara</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Page: Übersicht ─────────────────────────────────── -->
-  <div id="pageOverview" class="page active">
+  <div id="pageOverview" class="page">
 
     <header class="topbar">
-      <div class="topbar-title">🏠 Mergelskaulhaus</div>
-      <div class="topbar-sub">Was bleibt, was geht?</div>
+      <div class="topbar-left">
+        <div class="topbar-title">🏠 Mergelskaulhaus</div>
+        <div class="topbar-sub">Was bleibt, was geht?</div>
+      </div>
+      <div class="topbar-right">
+        <div id="userChip" class="user-chip"></div>
+        <button id="btnLogout" class="logout-btn" aria-label="Abmelden">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
     </header>
 
     <div class="filter-bar">
@@ -43,7 +91,7 @@
       <p class="empty-sub">Tippe auf + um den ersten Eintrag zu erstellen</p>
     </div>
 
-    <button id="fab" class="fab" aria-label="Neuer Eintrag">
+    <button id="fab" class="fab hidden" aria-label="Neuer Eintrag">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
   </div>
@@ -62,7 +110,6 @@
     <div class="form-scroll">
       <input type="hidden" id="editId" />
 
-      <!-- Images -->
       <section class="form-section">
         <div id="imagePreview" class="image-strip"></div>
         <label class="image-add-btn">
@@ -72,13 +119,11 @@
         </label>
       </section>
 
-      <!-- Core fields -->
       <section class="form-section">
         <div class="field-group">
           <label class="field-label" for="fieldItem">Gegenstand *</label>
           <input class="field-input" type="text" id="fieldItem" placeholder="z.B. Großmutters Sessel" />
         </div>
-
         <div class="field-group">
           <label class="field-label" for="fieldRaum">Raum *</label>
           <div class="select-wrap">
@@ -100,7 +145,6 @@
         </div>
       </section>
 
-      <!-- Entscheidung chips -->
       <section class="form-section">
         <div class="field-label">Entscheidung</div>
         <div class="chip-group" id="chipGroup">
@@ -115,7 +159,6 @@
         </div>
       </section>
 
-      <!-- Notes -->
       <section class="form-section">
         <div class="field-group">
           <label class="field-label" for="fieldNotes">Notizen</label>
@@ -124,7 +167,6 @@
       </section>
 
       <div id="formError" class="form-error hidden"></div>
-
       <div class="form-bottom-pad"></div>
     </div>
   </div>
@@ -135,7 +177,6 @@
     <div class="sheet-panel">
       <div class="sheet-handle"></div>
       <h3 class="sheet-title">Filtern</h3>
-
       <div class="sheet-group">
         <div class="sheet-label">Raum</div>
         <div class="chip-group">
@@ -152,7 +193,6 @@
           <button class="chip chip-sm" data-filter="raum" data-value="Flur &amp; Treppenhaus">Flur &amp; Treppenhaus</button>
         </div>
       </div>
-
       <div class="sheet-group">
         <div class="sheet-label">Entscheidung</div>
         <div class="chip-group">
@@ -167,8 +207,17 @@
           <button class="chip chip-sm chip-entsorgen" data-filter="entsch" data-value="Im Haus lassen / Entrümpelung">Im Haus lassen / Entrümpelung</button>
         </div>
       </div>
-
       <button id="applyFilter" class="btn-apply">Anwenden</button>
+    </div>
+  </div>
+
+  <!-- ── Reaction Detail Sheet ──────────────────────────── -->
+  <div id="reactionSheet" class="sheet hidden">
+    <div id="reactionSheetBackdrop" class="sheet-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3 class="sheet-title" id="reactionSheetTitle"></h3>
+      <div id="reactionSheetBody" class="reaction-detail-list"></div>
     </div>
   </div>
 
